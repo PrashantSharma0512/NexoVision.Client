@@ -48,9 +48,9 @@ const NotesList = ({ newFile, filter }) => {
     }
   };
 
-  const sortedNotes = [...notes].sort((a, b) => {
-    const filenameA = a.filename.toLowerCase();
-    const filenameB = b.filename.toLowerCase();
+  const sortedNotes = [...notes]?.sort((a, b) => {
+    const filenameA = a?.filename.toLowerCase();
+    const filenameB = b?.filename.toLowerCase();
     
     if (sortConfig.key === 'name') {
       return sortConfig.direction === 'asc' 
