@@ -37,16 +37,16 @@ const NotesList = ({ newFile, filter }) => {
     }
   };
 
-  const handleDelete = async (filename) => {
-    if (!window.confirm('Are you sure you want to delete this file?')) return;
+  // const handleDelete = async (filename) => {
+  //   if (!window.confirm('Are you sure you want to delete this file?')) return;
     
-    try {
-      await axios.delete(`/api/notes/${filename}`);
-      fetchNotes();
-    } catch (err) {
-      console.error('Delete failed:', err);
-    }
-  };
+  //   try {
+  //     await axios.delete(`/api/notes/${filename}`);
+  //     fetchNotes();
+  //   } catch (err) {
+  //     console.error('Delete failed:', err);
+  //   }
+  // };
 
   const sortedNotes = [...notes]?.sort((a, b) => {
     const filenameA = a?.filename.toLowerCase();
@@ -184,7 +184,7 @@ const NotesList = ({ newFile, filter }) => {
                         <FiDownload className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(note.filename)}
+                        // onClick={() => handleDelete(note.filename)}
                         className="text-red-600 hover:text-red-900 p-1"
                         title="Delete"
                       >
