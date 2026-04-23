@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import axios from 'axios';
-import { FiUploadCloud, FiX } from 'react-icons/fi';
+import api from '../../utils/api';
+import { FiUploadCloud, FiX, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import { MdDelete } from "react-icons/md";
 
 const FileUpload = ({ onUpload }) => {
@@ -8,6 +8,7 @@ const FileUpload = ({ onUpload }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [meta, setMeta] = useState({ subject: '', code: '' });
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
@@ -19,15 +20,15 @@ const FileUpload = ({ onUpload }) => {
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
         'text/plain'
       ];
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      const maxSize = 10 * 1024 * 1024; // 10MB
       
       if (!validTypes.includes(selectedFile.type)) {
-        setMessage({ text: 'Only PDF, DOCX, DOC, and TXT files are allowed', type: 'error' });
+        setMessage({ text: 'Neural compatibility error: Use PDF/DOCX/TXT', type: 'error' });
         return;
       }
       
       if (selectedFile.size > maxSize) {
-        setMessage({ text: 'File size must be less than 5MB', type: 'error' });
+        setMessage({ text: 'Payload too large: Max 10MB', type: 'error' });
         return;
       }
       
@@ -38,7 +39,7 @@ const FileUpload = ({ onUpload }) => {
 
   const handleUpload = async () => {
     if (!file) {
-      setMessage({ text: 'Please select a file first', type: 'error' });
+      setMessage({ text: 'Target file not selected', type: 'error' });
       return;
     }
   
@@ -46,9 +47,11 @@ const FileUpload = ({ onUpload }) => {
     setUploadProgress(0);
     const formData = new FormData();
     formData.append('note', file);
+    formData.append('subject', meta.subject);
+    formData.append('subject_code', meta.code);
   
     try {
-      const res = await axios.post('https://nexovision-server.onrender.com/api/notes/upload', formData, {
+      const res = await api.post('/api/notes/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
@@ -60,15 +63,14 @@ const FileUpload = ({ onUpload }) => {
         },
       });
       
-      setMessage({ text: 'File uploaded successfully!', type: 'success' });
+      setMessage({ text: 'Transmission successful: File synced', type: 'success' });
       onUpload(res.data.file);
       setFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setMeta({ subject: '', code: '' });
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
       setMessage({ 
-        text: err.response?.data?.message || 'Upload failed', 
+        text: err.response?.data?.error || 'Uplink failure: Connection lost', 
         type: 'error' 
       });
     } finally {
@@ -77,128 +79,121 @@ const FileUpload = ({ onUpload }) => {
     }
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFileChange({ target: { files: [e.dataTransfer.files[0]] } });
-    }
-  };
-
-  const removeFile = () => {
-    setFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-      <div className="p-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Upload Notes</h2>
-        <p className="text-gray-600 mb-6">Share your study materials with classmates</p>
-        
-        <div 
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 mb-4 ${
-            file ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-          }`}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-        >
-          <div className="flex flex-col items-center justify-center space-y-3">
-            <FiUploadCloud className="h-12 w-12 text-blue-500" />
-            
-            <div className="text-sm text-gray-600">
-              {file ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <p className="font-medium text-green-600 truncate max-w-xs">{file.name}</p>
-                  <button 
-                    onClick={removeFile}
-                    className="text-red-500 hover:text-red-700"
-                    title="Remove file"
-                  >
-                    <MdDelete size={30} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <p className="font-medium">Drag & drop files here</p>
-                  <p className="text-xs mt-1">or</p>
-                </>
-              )}
-            </div>
-            
-            <label className="cursor-pointer">
-              <span className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm font-medium">
-                Browse Files
-              </span>
-              <input 
-                type="file" 
-                ref={fileInputRef}
-                onChange={handleFileChange} 
-                className="hidden" 
-                accept=".pdf,.doc,.docx,.txt"
-              />
-            </label>
-            
-            <p className="text-xs text-gray-500">PDF, DOCX, or TXT (Max 5MB)</p>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Subject Title</label>
+          <input 
+            type="text" 
+            placeholder="e.g. Quantum Computing"
+            className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            value={meta.subject}
+            onChange={(e) => setMeta({...meta, subject: e.target.value})}
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">ID Code</label>
+          <input 
+            type="text" 
+            placeholder="QC-401"
+            className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            value={meta.code}
+            onChange={(e) => setMeta({...meta, code: e.target.value})}
+          />
+        </div>
+      </div>
+
+      <div 
+        className={`relative border-2 border-dashed rounded-3xl p-10 text-center transition-all duration-300 group ${
+          file 
+          ? 'border-emerald-500/50 bg-emerald-500/5' 
+          : 'border-slate-800 hover:border-blue-500/50 hover:bg-blue-600/5'
+        }`}
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onDrop={(e) => {
+          e.preventDefault(); e.stopPropagation();
+          if (e.dataTransfer.files?.[0]) handleFileChange({ target: { files: [e.dataTransfer.files[0]] } });
+        }}
+      >
+        <div className="flex flex-col items-center justify-center space-y-4">
+          <div className={`p-4 rounded-2xl ${file ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400 group-hover:text-blue-400 group-hover:bg-blue-600/10'} transition-all`}>
+            {file ? <FiCheck size={24} /> : <FiUploadCloud size={24} />}
+          </div>
+          
+          <div className="space-y-1">
+            {file ? (
+              <div className="flex items-center space-x-3 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700/50">
+                <span className="text-xs font-bold text-white truncate max-w-[150px]">{file.name}</span>
+                <button onClick={() => setFile(null)} className="text-rose-500 hover:scale-110 transition-transform">
+                  <FiX size={16} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm font-black text-white">Initialize Upload</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Drag or Browse Surface</p>
+              </>
+            )}
+          </div>
+          
+          <input 
+            type="file" 
+            ref={fileInputRef}
+            onChange={handleFileChange} 
+            className="hidden" 
+            accept=".pdf,.doc,.docx,.txt"
+          />
+          {!file && (
+            <button 
+              onClick={() => fileInputRef.current.click()}
+              className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+            >
+              Select Payload
+            </button>
+          )}
+        </div>
+      </div>
+
+      {uploading && (
+        <div className="space-y-2 px-2">
+          <div className="flex justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest">
+            <span>Syncing Data...</span>
+            <span>{uploadProgress}%</span>
+          </div>
+          <div className="w-full bg-slate-800/50 rounded-full h-1.5 overflow-hidden">
+            <div 
+              className="bg-blue-500 h-full transition-all duration-500" 
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
           </div>
         </div>
+      )}
 
-        {uploading && (
-          <div className="mb-4">
-            <div className="flex justify-between text-xs text-gray-600 mb-1">
-              <span>Uploading...</span>
-              <span>{uploadProgress}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-          </div>
-        )}
+      {message.text && (
+        <div className={`p-4 rounded-xl border text-[10px] font-black uppercase tracking-widest flex items-center space-x-3 ${
+          message.type === 'success' 
+            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+            : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+        }`}>
+          {message.type === 'success' ? <FiCheck /> : <FiAlertCircle />}
+          <span>{message.text}</span>
+        </div>
+      )}
 
-        {message.text && (
-          <div className={`p-3 rounded-md mb-4 ${
-            message.type === 'success' 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-red-100 text-red-800'
-          }`}>
-            {message.text}
-          </div>
-        )}
-
-        <button
-          onClick={handleUpload}
-          disabled={uploading || !file}
-          className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center ${
-            uploading 
-              ? 'bg-gray-400 cursor-not-allowed' 
-              : !file 
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
-          }`}
-        >
-          {uploading ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Uploading...
-            </>
-          ) : (
-            'Upload Note'
-          )}
-        </button>
-      </div>
+      <button
+        onClick={handleUpload}
+        disabled={uploading || !file}
+        className={`w-full group relative flex items-center justify-center py-5 rounded-2xl font-black tracking-[0.2em] uppercase text-xs transition-all duration-300 shadow-2xl ${
+          uploading 
+            ? 'bg-slate-800 text-slate-600' 
+            : !file 
+              ? 'bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed uppercase' 
+              : 'bg-blue-600 text-white hover:bg-blue-500 hover:-translate-y-1 shadow-blue-500/20'
+        }`}
+      >
+        {uploading ? 'Processing Signal...' : 'Execute Sync'}
+      </button>
     </div>
   );
 };

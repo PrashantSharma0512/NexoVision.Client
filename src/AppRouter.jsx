@@ -8,11 +8,12 @@ import NotFound from './components/common/NotFound';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import RegisterFace from './components/attendence/RegisterFace';
-import FaceAttendance from './components/attendence/FaceAttendance;';
+import FaceAttendance from './components/attendence/FaceAttendance';
 import NotesDashboard from './components/notes/NotesDashboard';
 import HomePage from './home/Home';
 import AuthLayout from './AuthLayout';
 import Dashboard from './components/Dashboard';
+import AttendanceReport from './components/attendence/AttendanceReport';
 
 const AppRouter = () => {
   return (
@@ -28,6 +29,7 @@ const AppRouter = () => {
           <Route element={<PrivateRoute />}>
             <Route path="/register-face" element={<RegisterFace />} />
             <Route path="/attendance" element={<AuthLayout><FaceAttendance /></AuthLayout>} />
+            <Route path="/attendance-report" element={<AttendanceReport />} />
             <Route path="/notes" element={<NotesDashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
 

@@ -4,7 +4,7 @@ import { lazy } from 'react';
 const Login = lazy(() => import('./components/auth/Login'));
 const Register = lazy(() => import('./components/auth/Register'));
 const RegisterFace = lazy(() => import('./components/attendence/RegisterFace'));
-const FaceAttendance = lazy(() => import('./components/attendence/FaceAttendance;'));
+const FaceAttendance = lazy(() => import('./components/attendence/FaceAttendance'));
 const NotesDashboard = lazy(() => import('./components/notes/NotesDashboard'));
 
 export const routes = [
